@@ -2,6 +2,7 @@
 /dist
 /node_modules
 /keys
+/files
 .env
 /nestjs-dockerized
 ormconfig.json
