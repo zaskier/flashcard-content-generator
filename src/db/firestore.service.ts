@@ -35,8 +35,12 @@ export class FirestoreService {
     return docRef.set(payload);
   }
 
-  public async get(subject?: string, topic?: string): Promise<any> {
-    let query: any = this.db.collection('flash_cards');
+  public async get(
+    subject?: string,
+    topic?: string,
+    flashCards?: string
+  ): Promise<any> {
+    let query: any = this.db.collection(process.env.BUCKET_NAME);
 
     //filtering
     if (subject !== undefined) {
@@ -46,16 +50,21 @@ export class FirestoreService {
     if (topic !== undefined) {
       query = query.where('topic', '==', topic);
     }
+
+    if (flashCards !== undefined) {
+      query = query.where('flashCards', '==', flashCards);
+    }
+
     const snapshot = await query.get();
     return snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
   }
 
   public async getById(id: string): Promise<any> {
-    const doc = await this.db.collection('flash_cards').doc(id).get();
+    const doc = await this.db.collection(process.env.BUCKET_NAME).doc(id).get();
     return doc.exists ? {id: doc.id, ...doc.data()} : null;
   }
 
   public async delete(id: string): Promise<any> {
-    await this.db.collection('flash_cards').doc(id).delete();
+    await this.db.collection(process.env.BUCKET_NAME).doc(id).delete();
   }
 }

@@ -1,9 +1,6 @@
 export class FlashCard {
-  readonly subject: string;
-
-  readonly topic: string;
-
-  readonly flashCards: string;
-
+  subject: string;
+  topic: string;
+  flashCards: string;
   cratedAt?: Date;
 }

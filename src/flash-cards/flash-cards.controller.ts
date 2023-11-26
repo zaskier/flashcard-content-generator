@@ -3,7 +3,6 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   Query,
@@ -17,13 +16,17 @@ export class FlashCardsController {
   constructor(private readonly flashCardsService: FlashCardsService) {}
 
   @Post()
-  create(@Body() createFlashCard: FlashCard) {
+  async create(@Body() createFlashCard: FlashCard) {
     return this.flashCardsService.create(createFlashCard);
   }
 
   @Get()
-  findAll(@Query('subject') subject?: string) {
-    return this.flashCardsService.findAll(subject);
+  findAll(
+    @Query('subject') subject?: string,
+    @Query('topic') topic?: string,
+    @Query('flashCards') flashCards?: string
+  ) {
+    return this.flashCardsService.findAll(subject, topic, flashCards);
   }
 
   @Get(':id')
