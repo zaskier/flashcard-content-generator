@@ -4,6 +4,7 @@ import * as csvParser from 'csv-parser';
 import {CsvRow} from 'src/utils/intefaces';
 import {Storage} from '@google-cloud/storage';
 import OpenAI from 'openai';
+import * as Papa from 'papaparse';
 
 import {FlashCard} from 'src/flash-cards/entities/flash-card.entity';
 import {FirestoreService} from 'src/db/firestore.service';
@@ -20,15 +21,11 @@ export class FileService {
   async upload(file: Express.Multer.File): Promise<string> {
     const date: Date = new Date();
     const gsFileName: string = `${date.getTime()}${file.originalname}.csv`;
-
     const bucket = storage.bucket(process.env.BUCKET_NAME);
+
     this.generateCards(reportFileName);
-
-    const gsReportFileName: string = `${date.getTime()}${file.originalname}`;
-
-    fs.writeFileSync(reportFileName, file.buffer.toString(), 'utf8');
     await bucket.upload(reportFileName, {
-      destination: gsReportFileName,
+      destination: gsFileName,
     });
     fs.unlinkSync(reportFileName);
 
@@ -68,13 +65,18 @@ export class FileService {
             row.text_explanation = element;
             this.generateCard(row)
               .then(() => {
-                row.status = 'sucess';
+                row.status = `sucess`;
                 data.push({...row});
+                const csvData = Papa.unparse(data);
+                fs.writeFileSync(filePath, csvData);
+                resolve(data);
               })
               .catch(error => {
-                row.status = `fail: ${error}`;
+                row.status = `fail : ${error}`;
                 data.push({...row});
-                console.error('Promise rejected:', row);
+                const csvData = Papa.unparse(data);
+                fs.writeFileSync(filePath, csvData);
+                resolve(data);
               });
           });
         })
@@ -94,12 +96,12 @@ export class FileService {
 
     const text_explanation: string = row.text_explanation;
 
-    const flashcard_data_structure: string = `{"Q": "question","A": "answer"}
+    const flashcard_data_structure: string = `{front: "value",back: "value"}
   `;
 
     const prompt = `You are a professional teacher in ${row.subject}.
-      Your goal is to generate a flashcard for the subject above with the focus on the ${row.topic} so that a student can improve their understanding of ${row.subject} and ${row.topic} while using that Flashcard.
-      Both front and back side of the flashcard must contain a maximum of 2 words and be very concise.
+      Your goal is to generate a flashcard in german language for the subject above with the focus on the ${row.topic} so that a student can improve their understanding of ${row.subject} and ${row.topic} while using that Flashcard.
+      Both front and back side of the flashcard must contain a maximum of 2 words for front value and for back value.
       The result of your work must be a Flaschard in the form of JSON using the ${flashcard_data_structure} data structure.
       Use ${text_explanation} as a helpful input for ideation.
     `;
@@ -115,23 +117,28 @@ export class FileService {
       topic: row.topic,
       flashCards: response.choices[0].text,
     };
-    //if card exist don't add it
     const existingCard = this.firestore.get(
       row.subject,
       row.topic,
       response.choices[0].text
     );
-    if (existingCard) {
-      console.warn('A card with the same values already exists.');
-      return;
+
+    if (!response.choices[0].text.includes('front:')) {
+      throw 'Card was created with wrong format, Please fix your input data';
+    } else if (
+      /"([^"\s]+(?:\s+[^"\s]+){2,})"/g.test(response.choices[0].text)
+      //match more han 2 words in double quotation
+    ) {
+      throw 'generated card contains more than 2 words';
+    } else if (existingCard) {
+      throw 'A card with the same values already exists.';
     } else {
       this.firestore.create(
         process.env.BUCKET_NAME,
         this.firestore.createId(),
         flashcard
       );
+      return flashcard;
     }
-
-    return flashcard;
   }
 }
