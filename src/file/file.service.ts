@@ -117,7 +117,7 @@ export class FileService {
       topic: row.topic,
       flashCards: response.choices[0].text,
     };
-    const existingCard = this.firestore.get(
+    const existingCard = await this.firestore.get(
       row.subject,
       row.topic,
       response.choices[0].text
@@ -127,10 +127,9 @@ export class FileService {
       throw 'Card was created with wrong format, Please fix your input data';
     } else if (
       /"([^"\s]+(?:\s+[^"\s]+){2,})"/g.test(response.choices[0].text)
-      //match more han 2 words in double quotation
     ) {
       throw 'generated card contains more than 2 words';
-    } else if (existingCard) {
+    } else if (existingCard && existingCard.length > 0) {
       throw 'A card with the same values already exists.';
     } else {
       this.firestore.create(
@@ -138,7 +137,7 @@ export class FileService {
         this.firestore.createId(),
         flashcard
       );
-      return flashcard;
     }
+    return flashcard;
   }
 }
