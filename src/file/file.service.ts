@@ -22,7 +22,7 @@ export class FileService {
     const date: Date = new Date();
     const gsFileName: string = `${date.getTime()}${file.originalname}.csv`;
     const bucket = storage.bucket(process.env.BUCKET_NAME);
-
+    fs.writeFileSync(reportFileName, file.buffer.toString(), 'utf8');
     this.generateCards(reportFileName);
     await bucket.upload(reportFileName, {
       destination: gsFileName,
