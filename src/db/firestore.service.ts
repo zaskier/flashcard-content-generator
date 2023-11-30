@@ -6,21 +6,16 @@ import {ConfigService} from 'src/config/config.service';
 @Injectable()
 export class FirestoreService {
   db: FirebaseFirestore.Firestore = null;
-  constructor(private config: ConfigService) {
-    if (config.isDevelopment()) {
-      let pathToKeyFile = config.get('FIRESTORE_KEY_FILE');
-      let serviceAccount = JSON.parse(
-        fs.readFileSync(pathToKeyFile).toString()
-      );
 
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-    } else {
-      admin.initializeApp({
-        credential: admin.credential.applicationDefault(),
-      });
-    }
+  constructor(private config: ConfigService) {
+    const firebaseConfig = {
+      projectId: process.env.PROJECT_ID,
+      databaseURL: process.env.FIRESTORE_URL,
+    };
+    admin.initializeApp({
+      ...firebaseConfig,
+      credential: admin.credential.applicationDefault(),
+    });
     this.db = admin.firestore();
   }
   public createId() {
@@ -31,7 +26,7 @@ export class FirestoreService {
     id: string,
     payload: any
   ): Promise<any> {
-    let docRef = this.db.collection(colleciton).doc(id);
+    const docRef = this.db.collection(colleciton).doc(id);
     return docRef.set(payload);
   }
 
